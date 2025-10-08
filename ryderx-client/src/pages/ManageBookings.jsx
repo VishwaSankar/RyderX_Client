@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import {
   Box,
   Container,
   Typography,
   Paper,
   Card,
-  CardMedia,
-  CardActions,
   Button,
   Divider,
   Chip,
@@ -15,26 +13,31 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  TextField,
+  MenuItem,
+  InputAdornment,
+  Stack,
 } from "@mui/material";
-import PaymentIcon from "@mui/icons-material/Payment";
+import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import PaymentIcon from "@mui/icons-material/CurrencyRupee";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import CancelIcon from "@mui/icons-material/Cancel";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import PlaceIcon from "@mui/icons-material/Place";
+import MonetizationOnIcon from "@mui/icons-material/CurrencyRupee";
+import SortIcon from "@mui/icons-material/Sort";
+import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { AuthContext } from "../context/AuthContext";
-import {
-  getReservations,
-  cancelReservation,
-} from "../services/reservationService";
+import { getReservations, cancelReservation } from "../services/reservationService";
 import {
   getUserBookingHistory,
   getAgentBookingHistories,
   getAllBookingHistories,
 } from "../services/bookingHistoryService";
 import { getToken } from "../utils/tokenHelper";
-import { resolveImageUrl } from "../utils/imageHelper";
 
 function formatCurrencyINR(n) {
   return `₹${Number(n).toLocaleString("en-IN")}`;
@@ -53,23 +56,25 @@ export default function ManageBookings() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
 
+  const [searchActive, setSearchActive] = useState("");
+  const [sortActive, setSortActive] = useState("desc");
+
+  const [searchPast, setSearchPast] = useState("");
+  const [sortPast, setSortPast] = useState("desc");
+
   const navigate = useNavigate();
 
-  // Fetch all bookings
   const fetchBookings = async () => {
     try {
       setLoading(true);
       const data = await getReservations(user?.roles);
-      setBookings(data || []);
-
       let history = [];
-      if (user?.roles?.includes("Agent")) {
-        history = await getAgentBookingHistories();
-      } else if (user?.roles?.includes("User")) {
-        history = await getUserBookingHistory();
-      } else if (user?.roles?.includes("Admin")) {
-        history = await getAllBookingHistories();
-      }
+
+      if (user?.roles?.includes("Agent")) history = await getAgentBookingHistories();
+      else if (user?.roles?.includes("User")) history = await getUserBookingHistory();
+      else if (user?.roles?.includes("Admin")) history = await getAllBookingHistories();
+
+      setBookings(data || []);
       setPastBookings(history || []);
     } catch (err) {
       console.error("Error loading bookings:", err);
@@ -82,7 +87,6 @@ export default function ManageBookings() {
     if (user) fetchBookings();
   }, [user]);
 
-  // Cancel booking manually
   const handleConfirmCancel = async () => {
     if (!bookingToCancel) return;
     try {
@@ -96,12 +100,11 @@ export default function ManageBookings() {
     }
   };
 
-  // Auto cancel logic for timer expiry
   const handleAutoCancel = async (b) => {
     try {
       await cancelReservation(b.id);
       setExpiredBookings((prev) => ({ ...prev, [b.id]: true }));
-      setDialogMessage(`⏰ Payment time expired. ${b.carName} was auto-cancelled.`);
+      setDialogMessage(`⏰ Payment time expired. ${b.carMake} ${b.carModel} was auto-cancelled.`);
       setDialogOpen(true);
       localStorage.removeItem(`timer_start_${b.id}`);
       fetchBookings();
@@ -110,62 +113,46 @@ export default function ManageBookings() {
     }
   };
 
-  // Timer logic with persistence in localStorage
   useEffect(() => {
     if (!bookings || bookings.length === 0) return;
-
     const interval = setInterval(() => {
-      setTimers((prevTimers) => {
-        const updatedTimers = { ...prevTimers };
-
+      setTimers((prev) => {
+        const updated = { ...prev };
         bookings
           .filter((b) => b.status?.toLowerCase() === "pending")
           .forEach((b) => {
             const key = `timer_start_${b.id}`;
-            let startTime = localStorage.getItem(key);
-
-            // If no start time exists, set one now
-            if (!startTime) {
-              startTime = Date.now();
-              localStorage.setItem(key, startTime);
+            let start = localStorage.getItem(key);
+            if (!start) {
+              start = Date.now();
+              localStorage.setItem(key, start);
             }
-
-            const elapsed = Math.floor((Date.now() - parseInt(startTime, 10)) / 1000);
-            const remaining = Math.max(600 - elapsed, 0); // 10 min = 600s
-
-            updatedTimers[b.id] = remaining;
-
-            if (remaining === 0 && !expiredBookings[b.id]) {
-              handleAutoCancel(b);
-            }
+            const elapsed = Math.floor((Date.now() - parseInt(start, 10)) / 1000);
+            const remaining = Math.max(600 - elapsed, 0);
+            updated[b.id] = remaining;
+            if (remaining === 0 && !expiredBookings[b.id]) handleAutoCancel(b);
           });
-
-        return updatedTimers;
+        return updated;
       });
     }, 1000);
-
     return () => clearInterval(interval);
   }, [bookings]);
 
-  // Payment
   const handlePayNow = async (b) => {
     try {
       const token = getToken();
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/payments/create-checkout-session`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            reservationId: b.id,
-            amount: b.totalPrice,
-            paymentMethod: "Stripe",
-          }),
-        }
-      );
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/payments/create-checkout-session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          reservationId: b.id,
+          amount: b.totalPrice,
+          paymentMethod: "Stripe",
+        }),
+      });
       if (!response.ok) throw new Error("Failed to create Stripe session");
       const data = await response.json();
       if (data.url) window.location.href = data.url;
@@ -176,7 +163,6 @@ export default function ManageBookings() {
     }
   };
 
-  // PDF
   const handlePrintBooking = (b) => {
     const doc = new jsPDF();
     doc.setFontSize(16);
@@ -184,7 +170,7 @@ export default function ManageBookings() {
     doc.setFontSize(12);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
     doc.line(14, 32, 200, 32);
-    doc.text(`Car: ${b.carName}`, 14, 45);
+    doc.text(`Car: ${b.carMake} ${b.carModel}`, 14, 45);
     doc.text(`Pickup: ${b.pickupLocation}`, 14, 55);
     doc.text(`Pickup Time: ${new Date(b.pickupAt).toLocaleString()}`, 14, 65);
     doc.text(`Drop-off: ${b.dropoffLocation}`, 14, 75);
@@ -204,30 +190,58 @@ export default function ManageBookings() {
     return "default";
   };
 
-  const activeBookings = bookings.filter((b) =>
-    ["active", "pending", "confirmed"].includes(b.status?.toLowerCase())
+  const activeBookings = useMemo(() => {
+    const query = searchActive.toLowerCase();
+    const filtered = bookings.filter((b) =>
+      ["active", "pending", "confirmed"].includes(b.status?.toLowerCase())
+    );
+    return filtered
+      .filter(
+        (b) =>
+          b.carMake?.toLowerCase().includes(query) ||
+          b.carModel?.toLowerCase().includes(query) ||
+          b.pickupLocation?.toLowerCase().includes(query) ||
+          b.dropoffLocation?.toLowerCase().includes(query)
+      )
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.pickupAt);
+        const dateB = new Date(b.createdAt || b.pickupAt);
+        return sortActive === "asc" ? dateA - dateB : dateB - dateA;
+      });
+  }, [bookings, searchActive, sortActive]);
+
+  const filteredPast = useMemo(() => {
+    const query = searchPast.toLowerCase();
+    const filtered = pastBookings.filter(
+      (b) =>
+        b.carMake?.toLowerCase().includes(query) ||
+        b.carModel?.toLowerCase().includes(query) ||
+        b.pickupLocation?.toLowerCase().includes(query) ||
+        b.dropoffLocation?.toLowerCase().includes(query)
+    );
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.pickupAt);
+      const dateB = new Date(b.createdAt || b.pickupAt);
+      return sortPast === "asc" ? dateA - dateB : dateB - dateA;
+    });
+  }, [pastBookings, searchPast, sortPast]);
+
+  const AlignedText = ({ icon, text, strong }) => (
+    <Stack direction="row" alignItems="center" spacing={1}>
+      {icon}
+      <Typography color="text.secondary">
+        {strong ? <strong>{text}</strong> : text}
+      </Typography>
+    </Stack>
   );
 
-  // UI States
   if (!user)
     return (
-      <Box
-        sx={{
-          height: "60vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <Box sx={{ height: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <Typography variant="h5" fontWeight={700} color="error">
           Please log in to view your bookings.
         </Typography>
-        <Button
-          variant="contained"
-          color="secondary"
-          onClick={() => navigate("/login")}
-        >
+        <Button variant="contained" color="secondary" onClick={() => navigate("/login")}>
           Go to Login
         </Button>
       </Box>
@@ -235,41 +249,57 @@ export default function ManageBookings() {
 
   if (loading)
     return (
-      <Box
-        sx={{
-          height: "60vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <Box sx={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <CircularProgress color="secondary" />
       </Box>
     );
 
   return (
     <Container maxWidth="lg" sx={{ py: 6 }}>
-      <Box mb={4}>
+      <Box mb={5} textAlign="center">
         <Typography
           variant="h4"
           fontWeight={800}
-          gutterBottom
-          sx={{ display: "flex", alignItems: "center", gap: 1, color: "#222" }}
+          sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}
         >
           <DirectionsCarIcon color="secondary" fontSize="large" />
           Manage Bookings
         </Typography>
-        <Divider sx={{ width: "100px", height: 3, backgroundColor: "#d81b60" }} />
+        <Divider sx={{ width: "100px", height: 3, backgroundColor: "#d81b60", mx: "auto", mt: 1 }} />
       </Box>
 
-      {/* Active Bookings */}
       <Typography variant="h6" fontWeight={700} mb={2} color="#333">
         Active Bookings
       </Typography>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={3}>
+        <TextField
+          placeholder="Search active bookings..."
+          value={searchActive}
+          onChange={(e) => setSearchActive(e.target.value)}
+          fullWidth
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="secondary" />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <TextField
+          select
+          label="Sort by Created Date"
+          value={sortActive}
+          onChange={(e) => setSortActive(e.target.value)}
+          sx={{ width: { xs: "100%", sm: "250px" } }}
+        >
+          <MenuItem value="desc">Newest First</MenuItem>
+          <MenuItem value="asc">Oldest First</MenuItem>
+        </TextField>
+      </Stack>
 
       {activeBookings.length === 0 ? (
         <Paper sx={{ p: 3, textAlign: "center", borderRadius: 3, color: "text.secondary" }}>
-          No active bookings at the moment.
+          No active bookings found.
         </Paper>
       ) : (
         activeBookings.map((b) => {
@@ -282,81 +312,47 @@ export default function ManageBookings() {
             <Card
               key={b.id}
               sx={{
-                display: "flex",
-                flexDirection: "row",
                 mb: 3,
+                p: 3,
                 borderRadius: 3,
-                boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
-                overflow: "hidden",
-                transition: "0.25s ease",
-                "&:hover": { transform: "translateY(-3px)" },
+                boxShadow: "0px 6px 18px rgba(0,0,0,0.1)",
+                background: "linear-gradient(145deg, #ffffff, #f8f8f8)",
               }}
             >
-              <CardMedia
-                component="img"
-                sx={{ width: 240, height: 170, objectFit: "cover" }}
-                image={resolveImageUrl(b.imageUrl)}
-                alt={b.carName}
-              />
-              <Box sx={{ flex: 1, p: 3 }}>
-                <Typography variant="h6" fontWeight={700}>
-                  {b.carName}
-                </Typography>
-                <Chip
-                  label={b.status}
-                  color={getStatusColor(b.status)}
-                  size="small"
-                  sx={{ mb: 1 }}
-                />
-                <Typography variant="body2" color="text.secondary">
-                  Pickup: {b.pickupLocation} — {new Date(b.pickupAt).toLocaleString()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Drop-off: {b.dropoffLocation} — {new Date(b.dropoffAt).toLocaleString()}
-                </Typography>
-                <Typography fontWeight={700} mt={1.5}>
-                  Total: {formatCurrencyINR(b.totalPrice)}
-                </Typography>
+              <Typography variant="h6" fontWeight={700} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <DirectionsCarIcon color="secondary" /> {b.carName || "Unknown"}
+              </Typography>
+              <Chip label={b.status} color={getStatusColor(b.status)} size="small" sx={{ mt: 1, mb: 2 }} />
 
-                {b.status?.toLowerCase() === "pending" && (
-                  <Typography
-                    variant="body2"
-                    fontWeight={700}
-                    color={isExpired ? "error.main" : "secondary.main"}
-                    sx={{ mt: 1 }}
-                  >
-                    {isExpired
-                      ? "Payment time expired"
-                      : `⏱ Payment expires in ${minutes}:${seconds
-                          .toString()
-                          .padStart(2, "0")}`}
-                  </Typography>
-                )}
-              </Box>
-              <Divider orientation="vertical" flexItem />
-              <CardActions
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  gap: 1,
-                  p: 2,
-                }}
-              >
-                <Button
-                  variant="outlined"
-                  startIcon={<InfoOutlinedIcon />}
-                  onClick={() => setSelectedBooking(b)}
+              <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Pickup: ${b.pickupLocation}`} />
+              <AlignedText icon={<AccessTimeIcon fontSize="small" />} text={new Date(b.pickupAt).toLocaleString()} />
+              <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Drop-off: ${b.dropoffLocation}`} />
+              <AlignedText icon={<AccessTimeIcon fontSize="small" />} text={new Date(b.dropoffAt).toLocaleString()} />
+              <AlignedText
+                icon={<MonetizationOnIcon fontSize="small" color="success" />}
+                text={`Total: ${formatCurrencyINR(b.totalPrice)}`}
+                strong
+              />
+
+              {b.status?.toLowerCase() === "pending" && (
+                <Typography
+                  variant="body2"
+                  fontWeight={700}
+                  color={isExpired ? "error.main" : "secondary.main"}
+                  sx={{ mt: 1 }}
                 >
+                  {isExpired
+                    ? "Payment time expired"
+                    : `⏱ Payment expires in ${minutes}:${seconds.toString().padStart(2, "0")}`}
+                </Typography>
+              )}
+
+              <Stack direction="row" spacing={2} justifyContent="flex-end" mt={2}>
+                <Button variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => setSelectedBooking(b)}>
                   View
                 </Button>
                 {b.status?.toLowerCase() === "pending" && !isExpired && (
-                  <Button
-                    variant="contained"
-                    color="secondary"
-                    startIcon={<PaymentIcon />}
-                    onClick={() => handlePayNow(b)}
-                  >
+                  <Button variant="contained" color="secondary" startIcon={<PaymentIcon />} onClick={() => handlePayNow(b)}>
                     Pay Now
                   </Button>
                 )}
@@ -371,74 +367,71 @@ export default function ManageBookings() {
                 >
                   Cancel
                 </Button>
-              </CardActions>
+              </Stack>
             </Card>
           );
         })
       )}
 
-      {/* Past Bookings */}
       <Typography variant="h6" fontWeight={700} mt={6} mb={2} color="#333">
         Past Bookings
       </Typography>
-      {pastBookings.length === 0 ? (
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mb={3}>
+        <TextField
+          placeholder="Search past bookings..."
+          value={searchPast}
+          onChange={(e) => setSearchPast(e.target.value)}
+          fullWidth
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="secondary" />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <TextField
+          select
+          label="Sort by Created Date"
+          value={sortPast}
+          onChange={(e) => setSortPast(e.target.value)}
+          sx={{ width: { xs: "100%", sm: "250px" } }}
+        >
+          <MenuItem value="desc">Newest First</MenuItem>
+          <MenuItem value="asc">Oldest First</MenuItem>
+        </TextField>
+      </Stack>
+
+      {filteredPast.length === 0 ? (
         <Paper sx={{ p: 3, textAlign: "center", borderRadius: 3 }}>
           <Typography color="text.secondary">No past bookings available.</Typography>
         </Paper>
       ) : (
-        pastBookings.map((b) => (
+        filteredPast.map((b) => (
           <Card
             key={b.id}
             sx={{
-              display: "flex",
-              flexDirection: "row",
               mb: 3,
+              p: 3,
               borderRadius: 3,
-              boxShadow: "0px 4px 14px rgba(0,0,0,0.06)",
-              overflow: "hidden",
-              backgroundColor: "#fff",
+              boxShadow: "0px 4px 14px rgba(0,0,0,0.08)",
+              background: "linear-gradient(145deg, #ffffff, #f8f8f8)",
             }}
           >
-            <CardMedia
-              component="img"
-              sx={{ width: 240, height: 170, objectFit: "cover" }}
-              image={resolveImageUrl(b.imageUrl)}
-              alt={b.carName}
+            <Typography variant="h6" fontWeight={700} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <DirectionsCarIcon color="secondary" /> {b.carMake || "Unknown"} {b.carModel || ""}
+            </Typography>
+            <Chip label={b.status} color={getStatusColor(b.status)} size="small" sx={{ mt: 1, mb: 2 }} />
+            <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Pickup: ${b.pickupLocation}`} />
+            <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Drop-off: ${b.dropoffLocation}`} />
+            <AlignedText icon={<AccessTimeIcon fontSize="small" />} text={new Date(b.pickupAt).toLocaleString()} />
+            <AlignedText
+              icon={<MonetizationOnIcon fontSize="small" color="success" />}
+              text={`Total: ${formatCurrencyINR(b.totalPrice)}`}
+              strong
             />
-            <Box sx={{ flex: 1, p: 3 }}>
-              <Typography variant="h6" fontWeight={700}>
-                {b.carName}
-              </Typography>
-              <Chip
-                label={b.status}
-                color={getStatusColor(b.status)}
-                size="small"
-                sx={{ mb: 1 }}
-              />
-              <Typography variant="body2" color="text.secondary">
-                Pickup: {b.pickupLocation} — {new Date(b.pickupAt).toLocaleString()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Drop-off: {b.dropoffLocation} — {new Date(b.dropoffAt).toLocaleString()}
-              </Typography>
-              <Typography fontWeight={700} mt={1.5}>
-                Total: {formatCurrencyINR(b.totalPrice)}
-              </Typography>
-            </Box>
-            <CardActions
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                gap: 1,
-                p: 2,
-              }}
-            >
-              <Button
-                variant="outlined"
-                startIcon={<InfoOutlinedIcon />}
-                onClick={() => setSelectedBooking(b)}
-              >
+            <Stack direction="row" spacing={2} justifyContent="flex-end" mt={2}>
+              <Button variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => setSelectedBooking(b)}>
                 Details
               </Button>
               <Button
@@ -449,23 +442,19 @@ export default function ManageBookings() {
               >
                 PDF
               </Button>
-            </CardActions>
+            </Stack>
           </Card>
         ))
       )}
 
-      {/* Booking Details Dialog */}
       <Dialog open={!!selectedBooking} onClose={() => setSelectedBooking(null)} maxWidth="sm" fullWidth>
         <DialogTitle fontWeight={700}>Booking Details</DialogTitle>
         <DialogContent dividers>
           {selectedBooking && (
             <Box>
-              <img
-                src={resolveImageUrl(selectedBooking.imageUrl)}
-                alt={selectedBooking.carName}
-                style={{ width: "100%", borderRadius: 8, marginBottom: 16 }}
-              />
-              <Typography variant="h6">{selectedBooking.carName}</Typography>
+              <Typography variant="h6">
+                {selectedBooking.carMake} {selectedBooking.carModel}
+              </Typography>
               <Chip
                 label={selectedBooking.status}
                 color={getStatusColor(selectedBooking.status)}
@@ -499,18 +488,15 @@ export default function ManageBookings() {
         </DialogActions>
       </Dialog>
 
-      {/* Cancel Confirmation */}
-      <Dialog
-        open={cancelDialogOpen}
-        onClose={() => setCancelDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
+      <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle fontWeight={700}>Cancel Booking</DialogTitle>
         <DialogContent dividers>
           <Typography>
             Are you sure you want to cancel{" "}
-            <strong>{bookingToCancel?.carName || "this booking"}</strong>?
+            <strong>
+              {bookingToCancel ? `${bookingToCancel.carName}` : "this booking"}
+            </strong>
+            ?
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -521,7 +507,6 @@ export default function ManageBookings() {
         </DialogActions>
       </Dialog>
 
-      {/* Timer Expiry Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>Payment Expired</DialogTitle>
         <DialogContent>
