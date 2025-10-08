@@ -17,6 +17,7 @@ import {
   MenuItem,
   InputAdornment,
   Stack,
+  Rating,
 } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import PaymentIcon from "@mui/icons-material/CurrencyRupee";
@@ -26,7 +27,6 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import PlaceIcon from "@mui/icons-material/Place";
 import MonetizationOnIcon from "@mui/icons-material/CurrencyRupee";
-import SortIcon from "@mui/icons-material/Sort";
 import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
@@ -37,6 +37,7 @@ import {
   getAgentBookingHistories,
   getAllBookingHistories,
 } from "../services/bookingHistoryService";
+import { addReview, getUserReviews } from "../services/reviewService";
 import { getToken } from "../utils/tokenHelper";
 
 function formatCurrencyINR(n) {
@@ -55,10 +56,16 @@ export default function ManageBookings() {
   const [expiredBookings, setExpiredBookings] = useState({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [reviewBooking, setReviewBooking] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [userReviews, setUserReviews] = useState([]);
+  const [viewReviewDialogOpen, setViewReviewDialogOpen] = useState(false);
+  const [viewReviewData, setViewReviewData] = useState(null);
 
   const [searchActive, setSearchActive] = useState("");
   const [sortActive, setSortActive] = useState("desc");
-
   const [searchPast, setSearchPast] = useState("");
   const [sortPast, setSortPast] = useState("desc");
 
@@ -83,9 +90,33 @@ export default function ManageBookings() {
     }
   };
 
+  const fetchUserReviews = async () => {
+    try {
+      const res = await getUserReviews();
+      setUserReviews(Array.isArray(res) ? res : []);
+    } catch (err) {
+      console.error("Error fetching user reviews:", err);
+    }
+  };
+
   useEffect(() => {
-    if (user) fetchBookings();
+    if (user) {
+      fetchBookings();
+      fetchUserReviews();
+    }
   }, [user]);
+
+  const findReviewForBooking = (booking) => {
+    if (!userReviews?.length) return null;
+    return (
+      userReviews.find(
+        (r) =>
+          r.bookingId === booking.id ||
+          r.carId === booking.carId ||
+          (r.carMake === booking.carMake && r.carModel === booking.carModel)
+      ) || null
+    );
+  };
 
   const handleConfirmCancel = async () => {
     if (!bookingToCancel) return;
@@ -162,7 +193,16 @@ export default function ManageBookings() {
       alert("Unable to start payment. Please try again.");
     }
   };
+function calculateRefundAmount(booking) {
+  const now = new Date();
+  const pickup = new Date(booking.pickupAt);
+  const hoursBeforePickup = (pickup - now) / (1000 * 60 * 60);
 
+  // Refund rules (you can modify these as needed)
+  if (hoursBeforePickup >= 24) return booking.totalPrice; // full refund
+  if (hoursBeforePickup >= 6) return booking.totalPrice * 0.5; // 50% refund
+  return booking.totalPrice * 0.25; // 25% refund if < 6 hours left
+}
   const handlePrintBooking = (b) => {
     const doc = new jsPDF();
     doc.setFontSize(16);
@@ -180,6 +220,61 @@ export default function ManageBookings() {
     doc.text(`User: ${b.userEmail}`, 14, 115);
     doc.save(`Booking_${b.id}.pdf`);
   };
+
+  const handleAddReview = async () => {
+    if (!rating) return alert("Please select a rating before submitting.");
+    try {
+      await addReview({
+        bookingId: reviewBooking?.id,
+        carId: reviewBooking?.carId,
+        rating,
+        comment,
+      });
+      setReviewDialogOpen(false);
+      setRating(0);
+      setComment("");
+      setReviewBooking(null);
+      await fetchUserReviews();
+      alert("✅ Review submitted successfully!");
+    } catch (err) {
+      alert("Failed to submit review. Please try again.");
+      console.error("Review submission error:", err);
+    }
+  };
+
+   // 🕒 Live countdown for pickup/drop time
+  useEffect(() => {
+    if (!bookings || bookings.length === 0) return;
+
+    const interval = setInterval(() => {
+      const updated = {};
+      const now = new Date();
+
+      bookings.forEach((b) => {
+        const pickup = new Date(b.pickupAt);
+        const dropoff = new Date(b.dropoffAt);
+
+        if (now < pickup) {
+          const diff = pickup - now;
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff / (1000 * 60)) % 60);
+          updated[b.id] = `🕒 ${hours}h ${minutes}m left for pickup`;
+        } else if (now >= pickup && now < dropoff) {
+          const diff = dropoff - now;
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff / (1000 * 60)) % 60);
+          updated[b.id] = `⏳ ${hours}h ${minutes}m left for drop-off`;
+        } else {
+          updated[b.id] = "✅ Trip completed";
+        }
+      });
+
+      setPickupTimers(updated);
+    }, 60000); // updates every minute
+
+    return () => clearInterval(interval);
+  }, [bookings]);
+
 
   const getStatusColor = (status) => {
     const lower = status?.toLowerCase();
@@ -307,66 +402,28 @@ export default function ManageBookings() {
           const minutes = Math.floor(timeLeft / 60);
           const seconds = timeLeft % 60;
           const isExpired = expiredBookings[b.id];
-
           return (
-            <Card
-              key={b.id}
-              sx={{
-                mb: 3,
-                p: 3,
-                borderRadius: 3,
-                boxShadow: "0px 6px 18px rgba(0,0,0,0.1)",
-                background: "linear-gradient(145deg, #ffffff, #f8f8f8)",
-              }}
-            >
+            <Card key={b.id} sx={{ mb: 3, p: 3, borderRadius: 3, boxShadow: "0px 6px 18px rgba(0,0,0,0.1)", background: "linear-gradient(145deg, #ffffff, #f8f8f8)" }}>
               <Typography variant="h6" fontWeight={700} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <DirectionsCarIcon color="secondary" /> {b.carName || "Unknown"}
               </Typography>
               <Chip label={b.status} color={getStatusColor(b.status)} size="small" sx={{ mt: 1, mb: 2 }} />
-
               <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Pickup: ${b.pickupLocation}`} />
               <AlignedText icon={<AccessTimeIcon fontSize="small" />} text={new Date(b.pickupAt).toLocaleString()} />
               <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Drop-off: ${b.dropoffLocation}`} />
               <AlignedText icon={<AccessTimeIcon fontSize="small" />} text={new Date(b.dropoffAt).toLocaleString()} />
-              <AlignedText
-                icon={<MonetizationOnIcon fontSize="small" color="success" />}
-                text={`Total: ${formatCurrencyINR(b.totalPrice)}`}
-                strong
-              />
-
+              <AlignedText icon={<MonetizationOnIcon fontSize="small" color="success" />} text={`Total: ${formatCurrencyINR(b.totalPrice)}`} strong />
               {b.status?.toLowerCase() === "pending" && (
-                <Typography
-                  variant="body2"
-                  fontWeight={700}
-                  color={isExpired ? "error.main" : "secondary.main"}
-                  sx={{ mt: 1 }}
-                >
-                  {isExpired
-                    ? "Payment time expired"
-                    : `⏱ Payment expires in ${minutes}:${seconds.toString().padStart(2, "0")}`}
+                <Typography variant="body2" fontWeight={700} color={isExpired ? "error.main" : "secondary.main"} sx={{ mt: 1 }}>
+                  {isExpired ? "Payment time expired" : `⏱ Payment expires in ${minutes}:${seconds.toString().padStart(2, "0")}`}
                 </Typography>
               )}
-
               <Stack direction="row" spacing={2} justifyContent="flex-end" mt={2}>
-                <Button variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => setSelectedBooking(b)}>
-                  View
-                </Button>
+                <Button variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => setSelectedBooking(b)}>View</Button>
                 {b.status?.toLowerCase() === "pending" && !isExpired && (
-                  <Button variant="contained" color="secondary" startIcon={<PaymentIcon />} onClick={() => handlePayNow(b)}>
-                    Pay Now
-                  </Button>
+                  <Button variant="contained" color="secondary" startIcon={<PaymentIcon />} onClick={() => handlePayNow(b)}>Pay Now</Button>
                 )}
-                <Button
-                  variant="contained"
-                  color="error"
-                  startIcon={<CancelIcon />}
-                  onClick={() => {
-                    setBookingToCancel(b);
-                    setCancelDialogOpen(true);
-                  }}
-                >
-                  Cancel
-                </Button>
+                <Button variant="contained" color="error" startIcon={<CancelIcon />} onClick={() => { setBookingToCancel(b); setCancelDialogOpen(true); }}>Cancel</Button>
               </Stack>
             </Card>
           );
@@ -407,44 +464,32 @@ export default function ManageBookings() {
           <Typography color="text.secondary">No past bookings available.</Typography>
         </Paper>
       ) : (
-        filteredPast.map((b) => (
-          <Card
-            key={b.id}
-            sx={{
-              mb: 3,
-              p: 3,
-              borderRadius: 3,
-              boxShadow: "0px 4px 14px rgba(0,0,0,0.08)",
-              background: "linear-gradient(145deg, #ffffff, #f8f8f8)",
-            }}
-          >
-            <Typography variant="h6" fontWeight={700} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <DirectionsCarIcon color="secondary" /> {b.carMake || "Unknown"} {b.carModel || ""}
-            </Typography>
-            <Chip label={b.status} color={getStatusColor(b.status)} size="small" sx={{ mt: 1, mb: 2 }} />
-            <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Pickup: ${b.pickupLocation}`} />
-            <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Drop-off: ${b.dropoffLocation}`} />
-            <AlignedText icon={<AccessTimeIcon fontSize="small" />} text={new Date(b.pickupAt).toLocaleString()} />
-            <AlignedText
-              icon={<MonetizationOnIcon fontSize="small" color="success" />}
-              text={`Total: ${formatCurrencyINR(b.totalPrice)}`}
-              strong
-            />
-            <Stack direction="row" spacing={2} justifyContent="flex-end" mt={2}>
-              <Button variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => setSelectedBooking(b)}>
-                Details
-              </Button>
-              <Button
-                variant="contained"
-                color="secondary"
-                startIcon={<PictureAsPdfIcon />}
-                onClick={() => handlePrintBooking(b)}
-              >
-                PDF
-              </Button>
-            </Stack>
-          </Card>
-        ))
+        filteredPast.map((b) => {
+          const review = findReviewForBooking(b);
+          return (
+            <Card key={b.id} sx={{ mb: 3, p: 3, borderRadius: 3, boxShadow: "0px 4px 14px rgba(0,0,0,0.08)", background: "linear-gradient(145deg, #ffffff, #f8f8f8)" }}>
+              <Typography variant="h6" fontWeight={700} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <DirectionsCarIcon color="secondary" /> {b.carMake || "Unknown"} {b.carModel || ""}
+              </Typography>
+              <Chip label={b.status} color={getStatusColor(b.status)} size="small" sx={{ mt: 1, mb: 2 }} />
+              <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Pickup: ${b.pickupLocation}`} />
+              <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Drop-off: ${b.dropoffLocation}`} />
+              <AlignedText icon={<AccessTimeIcon fontSize="small" />} text={new Date(b.pickupAt).toLocaleString()} />
+              <AlignedText icon={<MonetizationOnIcon fontSize="small" color="success" />} text={`Total: ${formatCurrencyINR(b.totalPrice)}`} strong />
+              <Stack direction="row" spacing={2} justifyContent="flex-end" mt={2}>
+                <Button variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => setSelectedBooking(b)}>Details</Button>
+                <Button variant="contained" color="secondary" startIcon={<PictureAsPdfIcon />} onClick={() => handlePrintBooking(b)}>PDF</Button>
+                {/* {b.status?.toLowerCase() === "completed" && (
+                  review ? (
+                    <Button variant="contained" color="primary" onClick={() => handleOpenViewReview(review)}>View Review</Button>
+                  ) : (
+                    <Button variant="contained" color="primary" onClick={() => { setReviewBooking(b); setReviewDialogOpen(true); }}>Leave Review</Button>
+                  )
+                )} */}
+              </Stack>
+            </Card>
+          );
+        })
       )}
 
       <Dialog open={!!selectedBooking} onClose={() => setSelectedBooking(null)} maxWidth="sm" fullWidth>
@@ -452,60 +497,68 @@ export default function ManageBookings() {
         <DialogContent dividers>
           {selectedBooking && (
             <Box>
-              <Typography variant="h6">
-                {selectedBooking.carMake} {selectedBooking.carModel}
-              </Typography>
-              <Chip
-                label={selectedBooking.status}
-                color={getStatusColor(selectedBooking.status)}
-                size="small"
-                sx={{ mb: 2 }}
-              />
+              <Typography variant="h6">{selectedBooking.carMake} {selectedBooking.carModel}</Typography>
+              <Chip label={selectedBooking.status} color={getStatusColor(selectedBooking.status)} size="small" sx={{ mb: 2 }} />
               <Typography>Pickup: {selectedBooking.pickupLocation}</Typography>
-              <Typography>
-                Pickup Time: {new Date(selectedBooking.pickupAt).toLocaleString()}
-              </Typography>
+              <Typography>Pickup Time: {new Date(selectedBooking.pickupAt).toLocaleString()}</Typography>
               <Typography>Drop-off: {selectedBooking.dropoffLocation}</Typography>
-              <Typography>
-                Drop-off Time: {new Date(selectedBooking.dropoffAt).toLocaleString()}
-              </Typography>
-              <Typography fontWeight={700}>
-                Total: {formatCurrencyINR(selectedBooking.totalPrice)}
-              </Typography>
+              <Typography>Drop-off Time: {new Date(selectedBooking.dropoffAt).toLocaleString()}</Typography>
+              <Typography fontWeight={700}>Total: {formatCurrencyINR(selectedBooking.totalPrice)}</Typography>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<PictureAsPdfIcon />}
-            onClick={() => handlePrintBooking(selectedBooking)}
-          >
-            Download PDF
-          </Button>
+          <Button variant="contained" color="secondary" startIcon={<PictureAsPdfIcon />} onClick={() => handlePrintBooking(selectedBooking)}>Download PDF</Button>
           <Button onClick={() => setSelectedBooking(null)}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle fontWeight={700}>Cancel Booking</DialogTitle>
-        <DialogContent dividers>
-          <Typography>
-            Are you sure you want to cancel{" "}
-            <strong>
-              {bookingToCancel ? `${bookingToCancel.carName}` : "this booking"}
-            </strong>
-            ?
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCancelDialogOpen(false)}>No</Button>
-          <Button color="error" onClick={handleConfirmCancel}>
-            Yes, Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
+       {/* Cancel Dialog with Refund Info */}
+<Dialog open={cancelDialogOpen} onClose={() => setCancelDialogOpen(false)} maxWidth="xs" fullWidth>
+  <DialogTitle fontWeight={700}>Cancel Booking</DialogTitle>
+  <DialogContent dividers>
+    {bookingToCancel ? (
+      bookingToCancel.status?.toLowerCase() === "confirmed" ? (
+        (() => {
+          const refundAmount = calculateRefundAmount(bookingToCancel);
+          return (
+            <>
+              <Typography gutterBottom>
+                You’re about to cancel your confirmed booking for{" "}
+                <strong>
+                  {bookingToCancel.carMake} {bookingToCancel.carModel}
+                </strong>.
+              </Typography>
+              <Typography gutterBottom>
+                Based on your pickup time, a refund of{" "}
+                <strong style={{ color: "green" }}>
+                  {formatCurrencyINR(refundAmount.toFixed(0))}
+                </strong>{" "}
+                will be issued to your original payment method.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                (Refunds may take 3–5 business days to process.)
+              </Typography>
+            </>
+          );
+        })()
+      ) : (
+        <Typography>
+          Are you sure you want to cancel{" "}
+          <strong>{bookingToCancel.carName || "this booking"}</strong>?
+        </Typography>
+      )
+    ) : (
+      <Typography>No booking selected.</Typography>
+    )}
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setCancelDialogOpen(false)}>No</Button>
+    <Button color="error" onClick={handleConfirmCancel}>
+      Yes, Cancel
+    </Button>
+  </DialogActions>
+</Dialog>
 
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
         <DialogTitle>Payment Expired</DialogTitle>
@@ -516,6 +569,10 @@ export default function ManageBookings() {
           <Button onClick={() => setDialogOpen(false)}>OK</Button>
         </DialogActions>
       </Dialog>
+
+      
+
+
     </Container>
   );
 }

@@ -35,6 +35,7 @@ import LoginIcon from "@mui/icons-material/Login";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
+import DirectionsCarIcon from "@mui/icons-material/DirectionsCar"; // ✅ Added car icon
 
 const navLinks = [
   {
@@ -130,6 +131,7 @@ function ResponsiveAppBar() {
 
   return (
     <>
+      {/* Top App Bar */}
       <AppBar position="static" sx={{ backgroundColor: "#f5f5f5", color: "#d81b60", boxShadow: "none" }}>
         <Container maxWidth="xl">
           <Toolbar sx={{ justifyContent: "flex-end", gap: 2.2, minHeight: "48px !important", px: { xs: 1, sm: 2 } }}>
@@ -227,25 +229,34 @@ function ResponsiveAppBar() {
         </Container>
       </AppBar>
 
+      {/* Main Navigation Bar */}
       <AppBar position="relative" sx={{ backgroundColor: "#fff", color: "#000", boxShadow: "0px 1px 4px rgba(0,0,0,0.1)" }}>
         <Container maxWidth="xl">
           <Toolbar disableGutters sx={{ position: "relative" }}>
-            <Typography
-              variant="h4"
+            {/* ✅ Added car icon before RYDRX */}
+            <Box
               component={Link}
               to="/"
               sx={{
-                mr: 6,
-                fontWeight: 900,
-                fontFamily: "Montserrat, sans-serif",
-                color: "#d81b60",
+                display: "flex",
+                alignItems: "center",
                 textDecoration: "none",
-                letterSpacing: "0.05em",
-                flexGrow: { xs: 1, md: 0 },
+                color: "#d81b60",
+                mr: 6,
               }}
             >
-              RYDRX
-            </Typography>
+              <DirectionsCarIcon sx={{ fontSize: 43, mr: 1, color: "#d81b60" }} />
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 900,
+                  fontFamily: "Montserrat, sans-serif",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                RYDRX
+              </Typography>
+            </Box>
 
             <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" }, gap: 3, position: "relative" }}>
               {navLinks.map((link) => (
@@ -321,6 +332,7 @@ function ResponsiveAppBar() {
               ))}
             </Box>
 
+            {/* Mobile Menu Icon */}
             <IconButton edge="end" color="inherit" aria-label="menu" onClick={handleDrawerToggle} sx={{ display: { xs: "flex", md: "none" } }}>
               <MenuIcon />
             </IconButton>
@@ -328,7 +340,7 @@ function ResponsiveAppBar() {
         </Container>
       </AppBar>
 
-      {/* Drawer for Mobile (unchanged) */}
+      {/* Drawer for Mobile */}
       <Drawer anchor="right" open={mobileOpen} onClose={handleDrawerToggle}>
         <Box sx={{ width: 260, p: 2 }}>
           <List>

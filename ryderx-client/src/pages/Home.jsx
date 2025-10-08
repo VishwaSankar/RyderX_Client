@@ -19,15 +19,25 @@ export default function Home() {
   const [dropoff, setDropoff] = useState("");
   const [locations, setLocations] = useState([]);
 
-  // Default dates
+  // 🕒 Current time
   const now = new Date();
-  const defaultPickup = new Date(now.getTime() + 60 * 60 * 1000);
-  const defaultDropoff = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+  // Pickup = 1 full day after current date
+  const defaultPickup = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + 1,
+    now.getHours(),
+    now.getMinutes()
+  );
+
+  // Drop-off = 1 day after pickup (so 2 days from now)
+  const defaultDropoff = new Date(defaultPickup.getTime() + 24 * 60 * 60 * 1000);
 
   const [pickupDate, setPickupDate] = useState(defaultPickup.toISOString().slice(0, 16));
   const [dropoffDate, setDropoffDate] = useState(defaultDropoff.toISOString().slice(0, 16));
 
-  // Load locations
+  // 📍 Load locations
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -44,7 +54,21 @@ export default function Home() {
     fetchLocations();
   }, []);
 
+  // 🧠 Validation before navigating
   const handleSearch = () => {
+    const pickupTime = new Date(pickupDate);
+    const dropoffTime = new Date(dropoffDate);
+
+    if (pickupTime < defaultPickup) {
+      alert("Pickup date must be at least 1 day after today.");
+      return;
+    }
+
+    if (dropoffTime <= pickupTime) {
+      alert("Drop-off date must be after pickup date.");
+      return;
+    }
+
     navigate(
       `/vehicles?pickup=${encodeURIComponent(pickup)}&dropoff=${encodeURIComponent(
         dropoff
@@ -54,7 +78,7 @@ export default function Home() {
     );
   };
 
-  // Shared field style
+  // 🎯 Shared input field styles
   const glassField = {
     "& .MuiOutlinedInput-root": {
       background: "rgba(255,255,255,0.15)",
@@ -82,7 +106,6 @@ export default function Home() {
     },
   };
 
-  // Dropdown styling
   const menuProps = {
     PaperProps: {
       sx: {
@@ -200,7 +223,14 @@ export default function Home() {
                 label="Pick-up Date & Time"
                 type="datetime-local"
                 value={pickupDate}
-                onChange={(e) => setPickupDate(e.target.value)}
+                onChange={(e) => {
+                  const newPickup = new Date(e.target.value);
+
+                  // Always set drop-off at least 1 day after pickup
+                  const newDrop = new Date(newPickup.getTime() + 24 * 60 * 60 * 1000);
+                  setPickupDate(e.target.value);
+                  setDropoffDate(newDrop.toISOString().slice(0, 16));
+                }}
                 fullWidth
                 InputLabelProps={{
                   shrink: true,
@@ -209,7 +239,9 @@ export default function Home() {
                 InputProps={{
                   style: { color: "#fff", fontWeight: 500 },
                 }}
-                inputProps={{ min: now.toISOString().slice(0, 16) }}
+                inputProps={{
+                  min: defaultPickup.toISOString().slice(0, 16),
+                }}
                 sx={glassField}
               />
             </Grid>
@@ -229,7 +261,14 @@ export default function Home() {
                 InputProps={{
                   style: { color: "#fff", fontWeight: 500 },
                 }}
-                inputProps={{ min: pickupDate }}
+                inputProps={{
+                  // Disable same day as pickup
+                  min: new Date(
+                    new Date(pickupDate).getTime() + 24 * 60 * 60 * 1000
+                  )
+                    .toISOString()
+                    .slice(0, 16),
+                }}
                 sx={glassField}
               />
             </Grid>

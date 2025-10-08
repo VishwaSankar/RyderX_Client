@@ -219,8 +219,23 @@ export default function BookingPage() {
   const roadCareTotal = roadCare ? roadCareFlat : 0;
   const addDriverTotal = additionalDriver ? additionalDriverFlat : 0;
   const childSeatTotal = childSeat ? childSeatFlat : 0;
-  const grandTotal =
-    vehicleSubtotal + roadCareTotal + addDriverTotal + childSeatTotal;
+  const grandTotal = vehicleSubtotal + roadCareTotal + addDriverTotal + childSeatTotal;
+
+    useEffect(() => {
+  const now = new Date();
+  const minPickup = new Date(now.getTime() + 60 * 60 * 1000);
+  if (new Date(pickupDate) < minPickup) {
+    const newPickup = minPickup.toISOString().slice(0, 16);
+    setPickupDate(newPickup);
+  }
+
+  const pickup = new Date(pickupDate);
+  const dropoff = new Date(dropoffDate);
+  if (dropoff <= pickup) {
+    const newDropoff = new Date(pickup.getTime() + 24 * 60 * 60 * 1000);
+    setDropoffDate(newDropoff.toISOString().slice(0, 16));
+  }
+}, [pickupDate, dropoffDate]);
 
   useEffect(() => {
     async function fetchLocations() {
@@ -294,7 +309,7 @@ export default function BookingPage() {
 
   const goBack = () => setStep((s) => Math.max(0, s - 1));
 
-  // ✅ STRIPE CHECKOUT INTEGRATION
+  //  STRIPE CHECKOUT INTEGRATION
   const handleConfirmPayment = async () => {
     if (!reservationId) {
       setDialogMessage("Reservation not found. Please go back and create reservation again.");
@@ -319,7 +334,7 @@ export default function BookingPage() {
           body: JSON.stringify({
             reservationId: reservationId,
             amount: grandTotal,
-                paymentMethod: "Stripe", 
+                paymentMethod: "Stripe",
 
           }),
         }
@@ -409,11 +424,17 @@ export default function BookingPage() {
                   </TextField>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField type="datetime-local" label="Pick-up Date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} fullWidth />
+                  <TextField type="datetime-local" label="Pick-up Date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} fullWidth  disabled/>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <TextField type="datetime-local" label="Drop-off Date" value={dropoffDate} onChange={(e) => setDropoffDate(e.target.value)} fullWidth />
-                </Grid>
+  <TextField
+    type="datetime-local"
+    label="Drop-off Date"
+    value={dropoffDate}
+    onChange={(e) => setDropoffDate(e.target.value)}
+    fullWidth
+  />
+</Grid>
               </Grid>
               <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
                 <Button variant="contained" onClick={goNext}>

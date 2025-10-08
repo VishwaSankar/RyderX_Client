@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import ResponsiveAppBar from "./ResponsiveAppBar";
 import { Box, Button } from "@mui/material";
 import { getAuthData } from "../../utils/tokenHelper";
+import Footer from "./Footer";
 
 const Layout = () => {
   const location = useLocation();
@@ -46,6 +47,8 @@ const Layout = () => {
           </Box>
         )}
         <Outlet />
+        {!hidePublicNavbar && <Footer />}
+
       </Box>
     </Box>
   );
