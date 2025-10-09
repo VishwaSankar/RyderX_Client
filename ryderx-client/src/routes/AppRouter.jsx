@@ -15,6 +15,8 @@ import AdminDashboard from "../pages/AdminDashboard";
 import AgentDashboard from "../pages/AgentDashboard";
 import PaymentSuccess from "../pages/PaymentSuccess";
 import PaymentCancel from "../pages/PaymentCancel";
+import About from "../pages/About";
+import Contact from "../pages/Contact";
 
 const AppRouter = () => (
   <BrowserRouter>
@@ -30,9 +32,13 @@ const AppRouter = () => (
           <Route path="/manage" element={<ManageBookings />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
 
 
-          {/* ✅ Admin only */}
+
+
+          {/*Admin only */}
           <Route
             path="/admin-dashboard"
             element={
@@ -42,7 +48,7 @@ const AppRouter = () => (
             }
           />
 
-          {/* ✅ Agent only */}
+          {/*Agent only */}
           <Route
             path="/agent-dashboard"
             element={

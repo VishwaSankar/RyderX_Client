@@ -24,13 +24,16 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import SearchIcon from "@mui/icons-material/Search";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
-import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import axios from "axios";
 import { resolveImageUrl } from "../../utils/imageHelper";
 import { getToken } from "../../utils/tokenHelper";
 
 const AUTH_URL = `${import.meta.env.VITE_API_URL}/authentication/all-users`;
 const CARS_URL = `${import.meta.env.VITE_API_URL}/cars`;
+
+// ✅ Default Avatar Placeholder
+const DEFAULT_AVATAR =
+  "https://cdn-icons-png.flaticon.com/512/847/847969.png"; // clean flat avatar icon
 
 export default function ManageAgentsAndCars() {
   const [agents, setAgents] = useState([]);
@@ -59,10 +62,12 @@ export default function ManageAgentsAndCars() {
           const agentCars = allCars.filter((car) => car.ownerId === agent.id);
           return {
             id: agent.id,
-            fullName: `${agent.firstName || ""} ${agent.lastName || ""}`.trim() || "Unnamed Agent",
+            fullName:
+              `${agent.firstName || ""} ${agent.lastName || ""}`.trim() ||
+              "Unnamed Agent",
             email: agent.email,
             phone: agent.phoneNumber || "N/A",
-            avatarUrl: agent.avatarUrl,
+            avatarUrl: agent.avatarUrl || DEFAULT_AVATAR,
             cars: agentCars,
           };
         });
@@ -88,7 +93,9 @@ export default function ManageAgentsAndCars() {
   }, [agents, search]);
 
   const totalCars = agents.reduce((sum, a) => sum + (a.cars?.length || 0), 0);
-  const avgCarsPerAgent = agents.length ? (totalCars / agents.length).toFixed(1) : 0;
+  const avgCarsPerAgent = agents.length
+    ? (totalCars / agents.length).toFixed(1)
+    : 0;
 
   // 🔹 Loading State
   if (loading)
@@ -122,12 +129,6 @@ export default function ManageAgentsAndCars() {
             icon: <DirectionsCarIcon color="secondary" />,
             color: "linear-gradient(135deg,#f3e5f5,#e1bee7)",
           },
-          {
-            title: "Avg Cars per Agent",
-            value: avgCarsPerAgent,
-            icon: <LocalOfferIcon color="secondary" />,
-            color: "linear-gradient(135deg,#fff9c4,#fff59d)",
-          },
         ].map((item, i) => (
           <Grid item xs={12} sm={6} md={4} key={i}>
             <Card
@@ -138,7 +139,11 @@ export default function ManageAgentsAndCars() {
               }}
             >
               <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Box
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
                   <Typography variant="h6">{item.title}</Typography>
                   {item.icon}
                 </Box>
@@ -173,11 +178,21 @@ export default function ManageAgentsAndCars() {
         <Table>
           <TableHead sx={{ background: "#f5f5f5" }}>
             <TableRow>
-              <TableCell><strong>Agent</strong></TableCell>
-              <TableCell><strong>Email</strong></TableCell>
-              <TableCell><strong>Phone</strong></TableCell>
-              <TableCell align="center"><strong>Cars</strong></TableCell>
-              <TableCell align="center"><strong>View</strong></TableCell>
+              <TableCell>
+                <strong>Agent</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Email</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Phone</strong>
+              </TableCell>
+              <TableCell align="center">
+                <strong>Cars</strong>
+              </TableCell>
+              <TableCell align="center">
+                <strong>View</strong>
+              </TableCell>
             </TableRow>
           </TableHead>
 
@@ -194,18 +209,22 @@ export default function ManageAgentsAndCars() {
                   {/* Agent Row */}
                   <TableRow hover sx={{ "&:hover": { background: "#fafafa" } }}>
                     <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
+                      <Box display="flex" alignItems="center" gap={1.5}>
                         <img
-                          src={resolveImageUrl(agent.avatarUrl)}
+                          src={resolveImageUrl(agent.avatarUrl) || DEFAULT_AVATAR}
                           alt={agent.fullName}
+                          onError={(e) => (e.target.src = DEFAULT_AVATAR)}
                           style={{
-                            width: 38,
-                            height: 38,
+                            width: 40,
+                            height: 40,
                             borderRadius: "50%",
                             objectFit: "cover",
+                            border: "2px solid #eee",
                           }}
                         />
-                        <Typography fontWeight={600}>{agent.fullName}</Typography>
+                        <Typography fontWeight={600}>
+                          {agent.fullName}
+                        </Typography>
                       </Box>
                     </TableCell>
                     <TableCell>{agent.email}</TableCell>
@@ -213,14 +232,18 @@ export default function ManageAgentsAndCars() {
                     <TableCell align="center">
                       <Chip
                         label={`${agent.cars?.length || 0}`}
-                        color={agent.cars?.length > 0 ? "secondary" : "default"}
+                        color={
+                          agent.cars?.length > 0 ? "secondary" : "default"
+                        }
                         size="small"
                       />
                     </TableCell>
                     <TableCell align="center">
                       <IconButton
                         onClick={() =>
-                          setExpandedAgent(expandedAgent === agent.id ? null : agent.id)
+                          setExpandedAgent(
+                            expandedAgent === agent.id ? null : agent.id
+                          )
                         }
                       >
                         {expandedAgent === agent.id ? (
@@ -241,7 +264,11 @@ export default function ManageAgentsAndCars() {
                         unmountOnExit
                       >
                         <Box sx={{ p: 3, backgroundColor: "#f9f9f9" }}>
-                          <Typography variant="h6" fontWeight={700} gutterBottom>
+                          <Typography
+                            variant="h6"
+                            fontWeight={700}
+                            gutterBottom
+                          >
                             {agent.fullName}'s Cars
                           </Typography>
                           <Divider sx={{ mb: 2 }} />
@@ -253,9 +280,12 @@ export default function ManageAgentsAndCars() {
                                   <Card
                                     sx={{
                                       borderRadius: 2,
-                                      boxShadow: "0px 4px 10px rgba(0,0,0,0.1)",
+                                      boxShadow:
+                                        "0px 4px 10px rgba(0,0,0,0.1)",
                                       transition: "0.3s",
-                                      "&:hover": { transform: "translateY(-5px)" },
+                                      "&:hover": {
+                                        transform: "translateY(-5px)",
+                                      },
                                     }}
                                   >
                                     <img
@@ -270,11 +300,15 @@ export default function ManageAgentsAndCars() {
                                       }}
                                     />
                                     <CardContent>
-                                      <Typography variant="h6" fontWeight={700}>
+                                      <Typography
+                                        variant="h6"
+                                        fontWeight={700}
+                                      >
                                         {car.make} {car.model}
                                       </Typography>
                                       <Typography color="text.secondary">
-                                        {car.year} • {car.fuelType} • {car.seats} Seats
+                                        {car.year} • {car.fuelType} •{" "}
+                                        {car.seats} Seats
                                       </Typography>
                                       <Typography
                                         variant="body1"

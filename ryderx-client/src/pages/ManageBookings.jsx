@@ -372,13 +372,6 @@ function calculateRefundAmount(booking) {
           value={searchActive}
           onChange={(e) => setSearchActive(e.target.value)}
           fullWidth
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="secondary" />
-              </InputAdornment>
-            ),
-          }}
         />
         <TextField
           select
@@ -439,13 +432,6 @@ function calculateRefundAmount(booking) {
           value={searchPast}
           onChange={(e) => setSearchPast(e.target.value)}
           fullWidth
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon color="secondary" />
-              </InputAdornment>
-            ),
-          }}
         />
         <TextField
           select
@@ -478,7 +464,7 @@ function calculateRefundAmount(booking) {
               <AlignedText icon={<MonetizationOnIcon fontSize="small" color="success" />} text={`Total: ${formatCurrencyINR(b.totalPrice)}`} strong />
               <Stack direction="row" spacing={2} justifyContent="flex-end" mt={2}>
                 <Button variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => setSelectedBooking(b)}>Details</Button>
-                <Button variant="contained" color="secondary" startIcon={<PictureAsPdfIcon />} onClick={() => handlePrintBooking(b)}>PDF</Button>
+                {/* <Button variant="contained" color="secondary" startIcon={<PictureAsPdfIcon />} onClick={() => handlePrintBooking(b)}>PDF</Button> */}
                 {/* {b.status?.toLowerCase() === "completed" && (
                   review ? (
                     <Button variant="contained" color="primary" onClick={() => handleOpenViewReview(review)}>View Review</Button>

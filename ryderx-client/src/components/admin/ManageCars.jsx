@@ -175,12 +175,12 @@ export default function ManageCars() {
             icon: <DirectionsCarIcon color="secondary" />,
             color: "linear-gradient(135deg,#e3f2fd,#bbdefb)",
           },
-          {
-            title: "Average Price/Day",
-            value: `₹${avgPrice}`,
-            icon: <LocalGasStationIcon color="secondary" />,
-            color: "linear-gradient(135deg,#f3e5f5,#e1bee7)",
-          },
+          // {
+          //   title: "Average Price/Day",
+          //   value: `₹${avgPrice}`,
+          //   icon: <LocalGasStationIcon color="secondary" />,
+          //   color: "linear-gradient(135deg,#f3e5f5,#e1bee7)",
+          // },
           {
             title: "Locations Covered",
             value: totalLocations,
@@ -211,81 +211,7 @@ export default function ManageCars() {
       </Grid>
 
       {/* Add Car Section */}
-      <Paper sx={{ p: 3, borderRadius: 3, mb: 3, boxShadow: "0px 4px 10px rgba(0,0,0,0.05)" }}>
-        <Typography variant="h6" fontWeight={700} gutterBottom>
-          Add New Car
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        <Grid container spacing={2}>
-          {[
-            "make",
-            "model",
-            "year",
-            "licensePlate",
-            "pricePerDay",
-            "category",
-            "fuelType",
-            "transmission",
-            "seats",
-            "features",
-          ].map((key) => (
-            <Grid item xs={12} md={2.4} key={key}>
-              <TextField
-                label={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, " $1")}
-                value={newCar[key]}
-                onChange={(e) => setNewCar({ ...newCar, [key]: e.target.value })}
-                fullWidth
-                size="small"
-              />
-            </Grid>
-          ))}
-
-          {/* Location Dropdown */}
-          <Grid item xs={12} md={3}>
-            <TextField
-              select
-              label="Location"
-              value={newCar.locationId}
-              onChange={(e) => setNewCar({ ...newCar, locationId: e.target.value })}
-              fullWidth
-              size="small"
-            >
-              {locations.map((loc) => (
-                <MenuItem key={loc.id} value={loc.id}>
-                  {loc.name} — {loc.city}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Grid>
-
-          {/* Image Upload */}
-          <Grid item xs={12} md={3}>
-            <Button variant="outlined" component="label" fullWidth sx={{ height: "100%" }}>
-              Upload Image
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => setNewCar({ ...newCar, imageFile: e.target.files[0] })}
-              />
-            </Button>
-          </Grid>
-
-          {/* Add Button */}
-          <Grid item xs={12} md={2}>
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<AddCircleIcon />}
-              fullWidth
-              sx={{ height: "100%" }}
-              onClick={handleAddCar}
-            >
-              Add Car
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+      
 
       {/* Search Bar */}
       <TextField

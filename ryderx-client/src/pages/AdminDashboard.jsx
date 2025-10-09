@@ -184,13 +184,7 @@ export default function AdminDashboard() {
       >
         <Toolbar>
           <Typography variant="h6" noWrap component="div">
-            {/* {selectedMenu === "dashboard" && "Dashboard Overview"}
-            {selectedMenu === "cars" && "Manage Cars"}
-            {selectedMenu === "bookings" && "Manage Bookings"}
-            {selectedMenu === "users" && "Manage Users"}
-            {selectedMenu === "agents" && "Agents & Their Cars"}
-            {selectedMenu === "locations" && "Manage Locations"}
-            {selectedMenu === "analytics" && "Analytics"} */}
+            
             RydrX - Admin Dashboard
           </Typography>
         </Toolbar>

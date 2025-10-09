@@ -11,13 +11,11 @@ import {
   TableRow,
   TableCell,
   TableBody,
-  IconButton,
   Card,
   CardContent,
   InputAdornment,
   Box,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import SearchIcon from "@mui/icons-material/Search";
 import PublicIcon from "@mui/icons-material/Public";
@@ -26,7 +24,6 @@ import MapIcon from "@mui/icons-material/Map";
 import {
   getAllLocations,
   createLocation,
-  deleteLocation,
 } from "../../services/adminService";
 
 export default function ManageLocations() {
@@ -65,13 +62,6 @@ export default function ManageLocations() {
     fetchLocations();
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this location?")) {
-      await deleteLocation(id);
-      fetchLocations();
-    }
-  };
-
   // ✅ Derived stats
   const totalLocations = locations.length;
   const totalCities = new Set(locations.map((l) => l.city)).size;
@@ -92,7 +82,7 @@ export default function ManageLocations() {
         Manage Locations
       </Typography>
       <Typography color="text.secondary" mb={3}>
-        Add, view, or remove available pickup and drop-off locations.
+        Add and view available pickup and drop-off locations.
       </Typography>
 
       {/* Summary Cards */}
@@ -198,7 +188,7 @@ export default function ManageLocations() {
         sx={{ mb: 3 }}
       />
 
-      {/* Locations Table */}
+      {/* Locations Table (No Actions) */}
       <Paper sx={{ borderRadius: 3, overflow: "hidden" }}>
         <Table>
           <TableHead sx={{ background: "#f5f5f5" }}>
@@ -208,13 +198,12 @@ export default function ManageLocations() {
               <TableCell><strong>State</strong></TableCell>
               <TableCell><strong>Zip Code</strong></TableCell>
               <TableCell><strong>Country</strong></TableCell>
-              <TableCell align="center"><strong>Actions</strong></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {filteredLocations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={5} align="center">
                   No locations found.
                 </TableCell>
               </TableRow>
@@ -233,14 +222,6 @@ export default function ManageLocations() {
                   <TableCell>{l.state || "-"}</TableCell>
                   <TableCell>{l.zipCode || "-"}</TableCell>
                   <TableCell>{l.country}</TableCell>
-                  <TableCell align="center">
-                    <IconButton
-                      color="error"
-                      onClick={() => handleDelete(l.id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
                 </TableRow>
               ))
             )}
