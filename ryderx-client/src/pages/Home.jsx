@@ -8,6 +8,10 @@ import {
   Grid,
   Paper,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import DirectionsCarIcon from "@mui/icons-material/DirectionsCar";
 import SecurityIcon from "@mui/icons-material/Security";
@@ -39,6 +43,19 @@ export default function Home() {
   const [pickupDate, setPickupDate] = useState(defaultPickup.toISOString().slice(0, 16));
   const [dropoffDate, setDropoffDate] = useState(defaultDropoff.toISOString().slice(0, 16));
 
+  // 🔹 Dialog state
+  const [alertMessage, setAlertMessage] = useState("");
+  const [openDialog, setOpenDialog] = useState(false);
+
+  const showDialog = (message) => {
+    setAlertMessage(message);
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+  };
+
   useEffect(() => {
     const fetchLocations = async () => {
       try {
@@ -60,12 +77,12 @@ export default function Home() {
     const dropoffTime = new Date(dropoffDate);
 
     if (pickupTime < defaultPickup) {
-      alert("Pickup date must be at least 1 day after today.");
+      showDialog("Pickup date must be at least 1 day after today.");
       return;
     }
 
     if (dropoffTime <= pickupTime) {
-      alert("Drop-off date must be after pickup date.");
+      showDialog("Drop-off date must be after pickup date.");
       return;
     }
 
@@ -78,7 +95,7 @@ export default function Home() {
     );
   };
 
-  // ✅ Animation Variants for smooth easing
+  // ✅ Animation Variants
   const fadeUp = {
     hidden: { opacity: 0, y: 50 },
     visible: {
@@ -152,11 +169,7 @@ export default function Home() {
         }}
       >
         <Container maxWidth="md">
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
+          <motion.div variants={staggerContainer} initial="hidden" animate="visible">
             <motion.div variants={fadeUp}>
               <Typography
                 variant="h2"
@@ -182,7 +195,7 @@ export default function Home() {
                 }}
               >
                 Book your car rental hassle-free. From airport pickups to city drives,{" "}
-                <strong>RYDRX</strong> has you covered.
+                <strong>RYDERX</strong> has you covered.
               </Typography>
             </motion.div>
 
@@ -323,12 +336,7 @@ export default function Home() {
       <Box sx={{ backgroundColor: "#fff", py: 10 }}>
         <Container maxWidth="md">
           <Divider sx={{ mb: 6, borderColor: "rgba(0,0,0,0.1)" }} />
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
+          <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
             <Typography
               variant="h3"
               fontWeight={800}
@@ -364,18 +372,8 @@ export default function Home() {
       {/* WHY CHOOSE SECTION */}
       <Box sx={{ py: 10, backgroundColor: "#fdf1f6" }}>
         <Container maxWidth="lg">
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            <Typography
-              variant="h4"
-              fontWeight={800}
-              textAlign="center"
-              sx={{ color: "#d81b60", mb: 6 }}
-            >
+          <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+            <Typography variant="h4" fontWeight={800} textAlign="center" sx={{ color: "#d81b60", mb: 6 }}>
               Why Choose RYDRX
             </Typography>
 
@@ -427,10 +425,7 @@ export default function Home() {
                     <Typography variant="h6" fontWeight={700} gutterBottom>
                       {feature.title}
                     </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: "#555", lineHeight: 1.6 }}
-                    >
+                    <Typography variant="body2" sx={{ color: "#555", lineHeight: 1.6 }}>
                       {feature.text}
                     </Typography>
                   </Paper>
@@ -440,6 +435,38 @@ export default function Home() {
           </motion.div>
         </Container>
       </Box>
+
+      {/* Alert Dialog */}
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            background: "#fff",
+          },
+        }}
+      >
+        <DialogTitle sx={{ color: "#d81b60", fontWeight: 800 }}>⚠️ Alert</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: "#333", fontSize: "1rem" }}>{alertMessage}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseDialog}
+            variant="contained"
+            sx={{
+              backgroundColor: "#d81b60",
+              "&:hover": { backgroundColor: "#ad1457" },
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

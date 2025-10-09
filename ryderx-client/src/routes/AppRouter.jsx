@@ -17,6 +17,7 @@ import PaymentSuccess from "../pages/PaymentSuccess";
 import PaymentCancel from "../pages/PaymentCancel";
 import About from "../pages/About";
 import Contact from "../pages/Contact";
+import NotFound from "../pages/NotFound";
 
 const AppRouter = () => (
   <BrowserRouter>
@@ -34,6 +35,7 @@ const AppRouter = () => (
           <Route path="/payment-cancel" element={<PaymentCancel />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="*" element={<NotFound />} />
 
 
 

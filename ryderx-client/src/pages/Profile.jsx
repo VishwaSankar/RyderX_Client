@@ -12,6 +12,8 @@ import {
   Paper,
   Avatar,
   CircularProgress,
+  Alert,
+  Collapse,
 } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
@@ -44,6 +46,17 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState("success"); // 'success' | 'error' | 'warning'
+  const [showAlert, setShowAlert] = useState(false);
+
+  const showMuiAlert = (message, type = "info") => {
+    setAlertMessage(message);
+    setAlertType(type);
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 4000);
+  };
 
   useEffect(() => {
     const token = getToken();
@@ -130,9 +143,9 @@ export default function Profile() {
       const uploadedUrl = res?.data?.avatarUrl || res?.data?.AvatarUrl || "";
       if (uploadedUrl) {
         setAvatarUrl(uploadedUrl);
-        alert("✅ Avatar updated successfully!");
+        showMuiAlert("✅ Avatar updated successfully!", "success");
       } else {
-        alert("❌ Avatar uploaded but server did not return URL.");
+        showMuiAlert("❌ Avatar uploaded but server did not return URL.", "warning");
       }
     } catch (err) {
       const message =
@@ -140,13 +153,38 @@ export default function Profile() {
         err?.response?.data?.message ||
         err?.message ||
         "Upload failed";
-      alert(`❌ Failed to upload avatar: ${message}`);
+      showMuiAlert(`❌ Failed to upload avatar: ${message}`, "error");
     } finally {
       setUploading(false);
     }
   };
 
   const handleSave = async () => {
+    // ✅ Validation: Must be 18+ and DL must be valid
+    if (dateOfBirth) {
+      const dob = new Date(dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - dob.getFullYear();
+      const monthDiff = today.getMonth() - dob.getMonth();
+      const dayDiff = today.getDate() - dob.getDate();
+      const isBirthdayPassed = monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0);
+      const actualAge = isBirthdayPassed ? age : age - 1;
+
+      if (actualAge < 18) {
+        showMuiAlert("🚫 You must be at least 18 years old to book or update your profile.", "error");
+        return;
+      }
+    }
+
+    if (licenseExpiryDate) {
+      const expiry = new Date(licenseExpiryDate);
+      const today = new Date();
+      if (expiry < today) {
+        showMuiAlert("🚫 Your driver license has expired. Please update with a valid one.", "error");
+        return;
+      }
+    }
+
     try {
       setSaving(true);
       const profileData = {
@@ -167,10 +205,10 @@ export default function Profile() {
       const res = await updateUserProfile(profileData);
       const message =
         res?.message || res?.Message || "✅ Profile updated successfully!";
-      alert(message);
+      showMuiAlert(message, "success");
     } catch (err) {
       const message = err?.message || "Failed to update profile";
-      alert(`❌ Failed to update profile: ${message}`);
+      showMuiAlert(`❌ Failed to update profile: ${message}`, "error");
     } finally {
       setSaving(false);
     }
@@ -178,6 +216,26 @@ export default function Profile() {
 
   return (
     <Container sx={{ py: 6 }}>
+      {/* ✅ Global Alert Display */}
+      <Collapse in={showAlert}>
+        <Alert
+          severity={alertType}
+          sx={{
+            mb: 3,
+            borderRadius: 2,
+            fontWeight: 600,
+            backgroundColor:
+              alertType === "success"
+                ? "#e8f5e9"
+                : alertType === "error"
+                ? "#ffebee"
+                : "#fffde7",
+          }}
+        >
+          {alertMessage}
+        </Alert>
+      </Collapse>
+
       <Grid container spacing={4}>
         <Grid item xs={12} md={3}>
           <Paper
@@ -239,7 +297,6 @@ export default function Profile() {
               >
                 <ListItemText sx={{ cursor: "pointer" }} primary="Profile" />
               </ListItem>
-              {/* ✅ Changed label here */}
               <ListItem
                 button
                 selected={activeTab === "bookings"}
