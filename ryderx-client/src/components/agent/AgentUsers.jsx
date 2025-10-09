@@ -15,6 +15,11 @@ import {
   Avatar,
   Chip,
   CircularProgress,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import axios from "axios";
 import { getToken } from "../../utils/tokenHelper";
@@ -23,6 +28,11 @@ export default function AgentUsers() {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userBookings, setUserBookings] = useState([]);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -33,21 +43,44 @@ export default function AgentUsers() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      // Extract unique users
       const uniqueUsers = Object.values(
         res.data.reduce((acc, b) => {
-          acc[b.userEmail] = {
-            email: b.userEmail,
-            carName: b.carName,
-            status: b.status,
-          };
+          if (!acc[b.userEmail]) {
+            acc[b.userEmail] = {
+              email: b.userEmail,
+              carName: b.carName,
+              status: b.status,
+            };
+          }
           return acc;
         }, {})
       );
+
       setUsers(uniqueUsers);
     } catch (err) {
       console.error("❌ Error fetching user data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserBookings = async (email) => {
+    try {
+      setLoadingBookings(true);
+      const token = getToken();
+      const res = await axios.get(
+        `${import.meta.env.VITE_API_URL}/reservations/agent/my`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Filter bookings by this user's email
+      const filtered = res.data.filter((b) => b.userEmail === email);
+      setUserBookings(filtered);
+    } catch (err) {
+      console.error("❌ Error fetching user bookings:", err);
+    } finally {
+      setLoadingBookings(false);
     }
   };
 
@@ -65,7 +98,9 @@ export default function AgentUsers() {
   // ✅ Derived summary data
   const totalUsers = users.length;
   const activeBookings = users.filter(
-    (u) => u.status?.toLowerCase() === "active" || u.status?.toLowerCase() === "confirmed"
+    (u) =>
+      u.status?.toLowerCase() === "active" ||
+      u.status?.toLowerCase() === "confirmed"
   ).length;
   const completedBookings = users.filter(
     (u) => u.status?.toLowerCase() === "completed"
@@ -85,6 +120,18 @@ export default function AgentUsers() {
       default:
         return "default";
     }
+  };
+
+  const handleViewBookings = (email) => {
+    setSelectedUser(email);
+    setOpenDialog(true);
+    fetchUserBookings(email);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setSelectedUser(null);
+    setUserBookings([]);
   };
 
   if (loading)
@@ -191,6 +238,9 @@ export default function AgentUsers() {
                 <TableCell>
                   <strong>Status</strong>
                 </TableCell>
+                <TableCell align="right">
+                  <strong>Actions</strong>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -230,12 +280,126 @@ export default function AgentUsers() {
                       }}
                     />
                   </TableCell>
+                  <TableCell align="right">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      sx={{
+                        borderColor: "#d81b60",
+                        color: "#d81b60",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        "&:hover": {
+                          backgroundColor: "rgba(216,27,96,0.08)",
+                          borderColor: "#ad1457",
+                        },
+                      }}
+                      onClick={() => handleViewBookings(u.email)}
+                    >
+                      View Bookings
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </Paper>
+
+      {/* ✅ User Bookings Dialog */}
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: "#d81b60" }}>
+          {selectedUser ? `Bookings of ${selectedUser}` : "User Bookings"}
+        </DialogTitle>
+        <DialogContent dividers>
+          {loadingBookings ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <CircularProgress color="secondary" />
+            </Box>
+          ) : userBookings.length === 0 ? (
+            <Typography textAlign="center" color="text.secondary" py={2}>
+              No bookings found for this user.
+            </Typography>
+          ) : (
+            <Table>
+              <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+                <TableRow>
+                  <TableCell>
+                    <strong>Car</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Pickup</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Dropoff</strong>
+                  </TableCell>
+                  <TableCell>
+                    <strong>Status</strong>
+                  </TableCell>
+                  <TableCell align="right">
+                    <strong>Total (₹)</strong>
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {userBookings.map((b, i) => (
+                  <TableRow key={i} hover>
+                    <TableCell>{b.carName}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {b.pickupLocation}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(b.pickupAt).toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {b.dropoffLocation}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(b.dropoffAt).toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={b.status}
+                        color={getStatusColor(b.status)}
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography fontWeight={700}>
+                        ₹{b.totalPrice}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={handleCloseDialog}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              color: "#d81b60",
+              "&:hover": { color: "#ad1457" },
+            }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

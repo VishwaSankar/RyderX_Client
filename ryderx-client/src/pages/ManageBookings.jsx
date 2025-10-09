@@ -460,8 +460,9 @@ function calculateRefundAmount(booking) {
               <Chip label={b.status} color={getStatusColor(b.status)} size="small" sx={{ mt: 1, mb: 2 }} />
               <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Pickup: ${b.pickupLocation}`} />
               <AlignedText icon={<PlaceIcon fontSize="small" />} text={`Drop-off: ${b.dropoffLocation}`} />
-              <AlignedText icon={<AccessTimeIcon fontSize="small" />} text={new Date(b.pickupAt).toLocaleString()} />
+              <AlignedText icon={<AccessTimeIcon fontSize="small" />} text={`Pickup time: ${new Date(b.pickupAt).toLocaleString()}`} />
               <AlignedText icon={<MonetizationOnIcon fontSize="small" color="success" />} text={`Total: ${formatCurrencyINR(b.totalPrice)}`} strong />
+
               <Stack direction="row" spacing={2} justifyContent="flex-end" mt={2}>
                 <Button variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => setSelectedBooking(b)}>Details</Button>
                 {/* <Button variant="contained" color="secondary" startIcon={<PictureAsPdfIcon />} onClick={() => handlePrintBooking(b)}>PDF</Button> */}
