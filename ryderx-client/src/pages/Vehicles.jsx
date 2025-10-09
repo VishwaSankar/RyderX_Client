@@ -430,29 +430,48 @@ export default function Vehicles() {
                         </Typography>
                       </Typography>
                     </Box>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBook(car);
-                      }}
-                      sx={{
-                        backgroundColor: "#d81b60",
-                        color: "#fff",
-                        fontWeight: 600,
-                        borderRadius: "20px",
-                        textTransform: "none",
-                        px: 2.5,
-                        py: 0.7,
-                        "&:hover": {
-                          backgroundColor: "#ad1457",
-                          boxShadow: "0 0 10px rgba(216,27,96,0.5)",
-                        },
-                      }}
-                    >
-                      Book now
-                    </Button>
+                   {car.isAvailable ? (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBook(car);
+                        }}
+                        sx={{
+                          backgroundColor: "#d81b60",
+                          color: "#fff",
+                          fontWeight: 600,
+                          borderRadius: "20px",
+                          textTransform: "none",
+                          px: 2.5,
+                          py: 0.7,
+                          "&:hover": {
+                            backgroundColor: "#ad1457",
+                            boxShadow: "0 0 10px rgba(216,27,96,0.5)",
+                          },
+                        }}
+                      >
+                        Book now
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        disabled
+                        sx={{
+                          borderRadius: "20px",
+                          color: "#999",
+                          borderColor: "#ccc",
+                          textTransform: "none",
+                          px: 2.5,
+                          py: 0.7,
+                          fontWeight: 600,
+                        }}
+                      >
+                        Sold Out
+                      </Button>
+                    )}
                   </Box>
                   <Divider sx={{ my: 1.5 }} />
                   <Box
