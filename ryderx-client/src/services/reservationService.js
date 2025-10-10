@@ -18,7 +18,7 @@ const handleError = (error) => {
   }
 };
 
-// 🟢 Create a new reservation
+//  Create a new reservation
 export const createReservation = async (reservationData) => {
   try {
     const token = getToken();
@@ -31,7 +31,7 @@ export const createReservation = async (reservationData) => {
   }
 };
 
-// 🟢 Get reservations based on user role
+//  Get reservations based on user role
 export const getReservations = async (roles) => {
   try {
     const token = getToken();
@@ -56,7 +56,7 @@ export const getReservations = async (roles) => {
   }
 };
 
-// 🟢 Cancel Reservation
+//  Cancel Reservation
 export const cancelReservation = async (reservationId) => {
   try {
     const token = getToken();
@@ -69,7 +69,7 @@ export const cancelReservation = async (reservationId) => {
   }
 };
 
-// 🟢 Admin/Agent: Update Reservation Status
+//  Admin/Agent: Update Reservation Status
 export const updateReservationStatus = async (reservationId, status) => {
   try {
     const token = getToken();

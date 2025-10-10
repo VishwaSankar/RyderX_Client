@@ -88,14 +88,14 @@ export default function AgentUsers() {
     fetchUsers();
   }, []);
 
-  // ✅ Filtered users by search
+  //  Filtered users by search
   const filteredUsers = useMemo(() => {
     return users.filter((u) =>
       u.email.toLowerCase().includes(search.toLowerCase())
     );
   }, [users, search]);
 
-  // ✅ Derived summary data
+  //  Derived summary data
   const totalUsers = users.length;
   const activeBookings = users.filter(
     (u) =>
@@ -306,7 +306,7 @@ export default function AgentUsers() {
         )}
       </Paper>
 
-      {/* ✅ User Bookings Dialog */}
+      {/* User Bookings Dialog */}
       <Dialog
         open={openDialog}
         onClose={handleCloseDialog}

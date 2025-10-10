@@ -430,7 +430,7 @@ export default function Vehicles() {
                         </Typography>
                       </Typography>
                     </Box>
-                   {car.isAvailable ? (
+                    {car.isAvailable ? (
                       <Button
                         variant="contained"
                         size="small"

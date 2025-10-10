@@ -36,7 +36,7 @@ export default function ManageUsers() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // ✅ Fetch Users
+  //  Fetch Users
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
@@ -55,7 +55,7 @@ export default function ManageUsers() {
     fetchUsers();
   }, []);
 
-  // ✅ Fetch bookings for each user
+  //  Fetch bookings for each user
   const fetchUserBookings = async (userId) => {
     try {
       const token = getToken();

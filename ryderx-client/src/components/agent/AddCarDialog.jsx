@@ -31,7 +31,6 @@ export default function AddCarDialog({ open, onClose, onSave, locations }) {
   const handleFile = (e) => handleChange("imageFile", e.target.files[0]);
   const handleSubmit = () => onSave(form);
 
-  // 👇 Makes dropdowns larger and menus wider
   const menuProps = {
     PaperProps: {
       sx: {
@@ -64,7 +63,7 @@ export default function AddCarDialog({ open, onClose, onSave, locations }) {
             </Grid>
           ))}
 
-          {/* 🔹 Fuel Type Dropdown */}
+          {/*  Fuel Type Dropdown */}
           <Grid item xs={12} md={4}>
             <TextField
               select
@@ -101,7 +100,7 @@ export default function AddCarDialog({ open, onClose, onSave, locations }) {
             />
           </Grid>
 
-          {/* 🔹 Location Dropdown */}
+          {/*  Location Dropdown */}
           <Grid item xs={12} md={6}>
             <TextField
               select

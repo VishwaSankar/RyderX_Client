@@ -47,13 +47,13 @@ export default function DashboardOverview() {
     fetchData();
   }, []);
 
-  // ✅ Filter completed bookings
+  //  Filter completed bookings
   const completedBookings = useMemo(
     () => reservations.filter((r) => r.status?.toLowerCase() === "completed"),
     [reservations]
   );
 
-  // ✅ Only count users with role "User"
+  //  Only count users with role "User"
   const totalCustomers = useMemo(() => {
     return users.filter((u) => {
       if (u.roles && Array.isArray(u.roles)) {
@@ -63,7 +63,7 @@ export default function DashboardOverview() {
     }).length;
   }, [users]);
 
-  // ✅ Derived insights
+  //  Derived insights
   const totalCompletedRevenue = useMemo(
     () => completedBookings.reduce((sum, b) => sum + (parseFloat(b.totalPrice) || 0), 0),
     [completedBookings]
@@ -74,7 +74,7 @@ export default function DashboardOverview() {
     return totalCompletedRevenue / completedBookings.length;
   }, [totalCompletedRevenue, completedBookings]);
 
-  // ✅ Top 3 most booked cars
+  //  Top 3 most booked cars
   const topCars = useMemo(() => {
     const carCount = {};
     completedBookings.forEach((b) => {
@@ -86,7 +86,7 @@ export default function DashboardOverview() {
       .slice(0, 3);
   }, [completedBookings]);
 
-  // ✅ Most active user
+  //  Most active user
   const topUser = useMemo(() => {
     const userCount = {};
     completedBookings.forEach((b) => {
@@ -96,7 +96,7 @@ export default function DashboardOverview() {
     return sorted.length > 0 ? sorted[0] : null;
   }, [completedBookings]);
 
-  // ✅ Recent completed bookings
+  //  Recent completed bookings
   const recentBookings = useMemo(() => {
     return [...completedBookings]
       .sort((a, b) => new Date(b.dropoffAt) - new Date(a.dropoffAt))

@@ -31,7 +31,6 @@ export default function Contact() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // TODO: Integrate EmailJS or backend mail API here
     console.log("Form Submitted:", formData);
     setSubmitted(true);
   };

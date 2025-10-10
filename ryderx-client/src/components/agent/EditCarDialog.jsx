@@ -37,7 +37,7 @@ export default function EditCarDialog({ open, car, onClose, onSave }) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle fontWeight={700}>
-        ✏️ Edit Car — {car.make} {car.model}
+        Edit Car — {car.make} {car.model}
       </DialogTitle>
       <DialogContent dividers>
         <Grid container spacing={2} mt={1}>

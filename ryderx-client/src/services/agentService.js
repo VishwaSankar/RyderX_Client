@@ -23,7 +23,7 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401) {
-      console.warn("⚠️ Unauthorized! Logging out...");
+      console.warn(" Unauthorized! Logging out...");
       removeAuthData();
       window.location.href = "/login";
     }
@@ -40,7 +40,7 @@ const resolveImageUrl = (path) => {
 };
 
 //
-// 🚘 CAR MANAGEMENT
+//  CAR MANAGEMENT
 //
 export const getAgentCars = async () => {
   const res = await api.get("/cars/mycars");
@@ -80,7 +80,7 @@ export const deleteAgentCar = async (id) => {
 };
 
 //
-// 📅 BOOKINGS MANAGEMENT
+//  BOOKINGS MANAGEMENT
 //
 export const getAgentBookings = async () => {
   const res = await api.get("/reservations/agent/my");
@@ -93,7 +93,7 @@ export const updateAgentBookingStatus = async (id, status) => {
 };
 
 //
-// 👤 USERS WHO BOOKED AGENT’S CARS
+//  USERS WHO BOOKED AGENT’S CARS
 //
 export const getBookersForAgent = async () => {
   const res = await api.get("/reservations/agent/bookers");
@@ -101,7 +101,7 @@ export const getBookersForAgent = async () => {
 };
 
 //
-// 📈 ANALYTICS
+//  ANALYTICS
 //
 export const getAgentRevenue = async () => {
   const res = await api.get("/reservations/agent/my");

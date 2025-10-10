@@ -20,7 +20,7 @@ api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401) {
-      console.warn("⚠️ Unauthorized! Redirecting to login...");
+      console.warn(" Unauthorized! Redirecting to login...");
       removeAuthData();
       window.location.href = "/login";
     }

@@ -7,7 +7,7 @@ export default function PaymentCancel() {
   return (
     <Container sx={{ textAlign: "center", py: 8 }}>
       <Typography variant="h4" color="error" fontWeight={700}>
-        ❌ Payment Cancelled
+        Payment Cancelled
       </Typography>
       <Typography sx={{ mt: 2 }}>You can try the payment again anytime.</Typography>
       <Box sx={{ mt: 4 }}>

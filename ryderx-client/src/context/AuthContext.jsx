@@ -1,4 +1,3 @@
-// context/AuthContext.jsx
 import { createContext, useState, useEffect } from "react";
 import { loginUser, registerUser, getUserProfile } from "../services/authService";
 import { setAuthData, removeAuthData, getAuthData } from "../utils/tokenHelper";

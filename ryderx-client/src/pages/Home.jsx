@@ -448,7 +448,7 @@ export default function Home() {
           },
         }}
       >
-        <DialogTitle sx={{ color: "#d81b60", fontWeight: 800 }}>⚠️ Alert</DialogTitle>
+        <DialogTitle sx={{ color: "#d81b60", fontWeight: 800 }}>Alert</DialogTitle>
         <DialogContent>
           <Typography sx={{ color: "#333", fontSize: "1rem" }}>{alertMessage}</Typography>
         </DialogContent>
